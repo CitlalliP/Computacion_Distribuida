@@ -24,6 +24,7 @@ class NodoTopologia(Nodo):
         self.mensaje = mensaje
         self.procesos_conocido =  {self.id_nodo}
         self.canales_conocidos =  {(self.id_nodo,y)  for y in self.vecinos }
+        self.proc_conocidos = self.procesos_conocido
 
     def toString(self):
         return f'Nodo : {self.id_nodo},\n vecinos: {self.vecinos},\nprocesos conocidos{self.procesos_conocido},\n canales_conocidos: {self.canales_conocidos}'
