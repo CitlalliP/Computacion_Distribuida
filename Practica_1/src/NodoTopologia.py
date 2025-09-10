@@ -1,3 +1,9 @@
+"""NodoTopologia.py
+
+Módulo que define la clase NodoTopologia para el algoritmo de descubrimiento
+y difusión de topología en un sistema distribuido usando SimPy.
+"""
+
 import simpy
 import time
 from Nodo import *
@@ -13,10 +19,27 @@ TICK = 1
 
 
 class NodoTopologia(Nodo):
-    ''' Implementa la interfaz de Nodo para el algoritmo de Broadcast.'''
+    '''Implementa la interfaz de Nodo para el algoritmo de descubrimiento de topología.
+
+    Atributos principales:
+        - id_nodo: identificador del nodo.
+        - vecinos: lista de ids de vecinos.
+        - canal_entrada: Store donde recibe mensajes.
+        - canal_salida: CanalBroadcast para enviar mensajes.
+        - procesos_conocido / proc_conocidos: conjunto de procesos conocidos.
+        - canales_conocidos: conjunto de aristas (origen, destino) conocidas.
+
+    Comportamiento:
+        - El nodo envía inicialmente su lista de vecinos a sus vecinos.
+        - Al recibir información de otro nodo (id, lista_vecinos) actualiza
+          los procesos y canales conocidos y reenvía la información a sus
+          vecinos (excepto al remitente directo).
+        - Cuando todas las aristas conocidas tienen ambos extremos en el
+          conjunto de procesos conocidos, el nodo termina su proceso.
+    '''
 
     def __init__(self, id_nodo, vecinos, canal_entrada, canal_salida, mensaje=None):
-	#Tú código aquí
+    	#Tú código aquí
         self.id_nodo =  id_nodo 
         self.vecinos =  vecinos  # Vecinos del proceso
         self.canal_entrada = canal_entrada 
@@ -53,41 +76,28 @@ class NodoTopologia(Nodo):
                 if todos_conocidos :
                     break 
 
-env = simpy.Environment()
-bc_pipe = CanalBroadcast(env)
+# bloque de prueba local (solo para ejecutar este archivo directamente)
+if __name__ == '__main__':
+    env = simpy.Environment()
+    bc_pipe = CanalBroadcast(env)
 
-grafica =  [[1,2],[0],[0,3],[2]]
-#grafica2 = [[1],[0,2,3],[1,4,5],[1],[2],[2]]
-sistema_distribuido =  []
+    grafica =  [[1,2],[0],[0,3],[2]]
+    #grafica2 = [[1],[0,2,3],[1,4,5],[1],[2],[2]]
+    sistema_distribuido =  []
 
-tick = 1
+    tick = 1
 
-for i in range(0, len(grafica)):
-            sistema_distribuido.append(NodoTopologia(i, grafica[i],
-                                       bc_pipe.crea_canal_de_entrada(), bc_pipe))
+    for i in range(0, len(grafica)):
+                sistema_distribuido.append(NodoTopologia(i, grafica[i],
+                                           bc_pipe.crea_canal_de_entrada(), bc_pipe))
 
-                        
-for nodo in sistema_distribuido:
-    env.process(nodo.topologia(env))
+    for nodo in sistema_distribuido:
+        env.process(nodo.topologia(env))
 
+    env.run(until=10)
 
-env.run(until=10)
+    print("Grafica : ", grafica )
+    print("Final de ejecucion")
 
-#
-print("Grafica : ", grafica )
-print("Final de ejecucion")
-
-for nodo in sistema_distribuido :
-    print(nodo.toString())
-
-
-
-
-
-
-
-
-
-            
-    
-    
+    for nodo in sistema_distribuido :
+        print(nodo.toString())
