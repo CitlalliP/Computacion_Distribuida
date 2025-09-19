@@ -25,10 +25,31 @@ class NodoConvergcast(Nodo):
         return f"Nodo : {self.id_nodo},valor: {self.value}, valores: {self.val_set}"
 
     def convergecast(self,env,f):
+    #       '''Implementar'''
 
-#       '''Implementar'''
+        if self.id_nodo == 0:
+            self.padre = self.id_nodo
+            self.funcion = f
+            yield env.timeout(TICK)
+            self.canal_salida.envia(("INIT", self.id_nodo, set()), self.vecinos)
 
+        while True:
+            msg = yield self.canal_entrada.get()
 
+            if msg[0] == "INIT":
+                self.padre = msg[1]
 
+                if self.vecinos:  # Si hay hijos no es una hoja
+                    msg_ = ("INIT", self.id_nodo, set())
+                    self.canal_salida.envia(msg_, self.vecinos)
+                else:  # Comienzo del convergecast (hoja)
+                    msg_back = ("BACK", self.id_nodo, self.val_set)
+                    self.canal_salida.envia(msg_back, [self.padre])
 
-
+            else:  # BACK del convergecast
+                self.val_set.update(msg[2])
+                if self.padre != self.id_nodo:
+                    msg_back = ("BACK", self.id_nodo, self.val_set)
+                    self.canal_salida.envia(msg_back, [self.padre])
+                else:
+                    self.value = f(self.val_set)
