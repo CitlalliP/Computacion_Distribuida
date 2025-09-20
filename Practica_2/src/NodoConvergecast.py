@@ -27,8 +27,57 @@ class NodoConvergcast(Nodo):
     def convergecast(self,env,f):
 
 #       '''Implementar'''
+         if self.id_nodo == 0  :
+                self.padre = self.id_nodo 
+                self.funcion = f 
+                yield env.timeout(TICK)
+                self.canal_salida.envia(("INIT",self.id_nodo,set()),self.vecinos)
+                
+         while True :
+                msg  = yield self.canal_entrada.get()
+                #msg = (INIT,1,set())
+                
+                if msg[0] == "INIT":
+
+                        #(estado,emisor,informacion)
+                        self.padre =  msg[1]
+                        
+                        if self.vecinos : #Si hay hijos no es una hoja
+                                msg_ =("INIT",self.id_nodo,set())
+                                self.canal_salida.envia(msg_,self.vecinos)
+
+                        else: #Comienzo del convergecast
+                                msg_back = ("BACK",self.id_nodo,self.val_set)
+                                self.canal_salida.envia(msg_back,[self.padre])
+                else: #Back del convergecast 
+                        self.val_set.update(msg[2])
+                        if self.padre != self.id_nodo :
+                                msg_back = ("BACK",self.id_nodo,self.val_set)
+                                self.canal_salida.envia(msg_back,[self.padre])
+                        else:
+                                self.value = f(self.val_set)
 
 
 
+adyacencias_arbol_1 = [[1,2],[3,4,5],[6],[],[7],[],[],[8,9],[],[]]
+TIEMPO_DE_EJECUCION = 10 
+env =  simpy.Environment()
+bc_pipe = CanalBroadcast(env)
+grafica  = []
 
 
+
+for i in range(0,len(adyacencias_arbol_1)):
+        grafica.append(NodoConvergcast(i,adyacencias_arbol_1[i],i,bc_pipe.crea_canal_de_entrada(),bc_pipe))
+
+
+f  =  lambda escructura:  sum(escructura)
+
+for nodo in grafica:
+        env.process(nodo.convergecast(env,f))
+
+env.run (until = TIEMPO_DE_EJECUCION)
+
+
+for nodo in grafica:
+        print(nodo.toString())
