@@ -25,22 +25,13 @@ class NodoBusqueda(Nodo):
 
 
         if self.id_nodo == 0 :
-            n = self.cantidad_nodos + 1
-            size = len(arr) // n
-            resto = len(arr) %n
-            partes =[]
-            inicio = 0
-            for i in range(n):
-                extra = 1 if i < resto else 0
-                fin = inicio + size + extra
-                partes.append(arr[inicio:fin])
-                inicio = fin
+          
 
-            self.arr = partes[0]
+            self.arr = 0
             #Cuadricula -> 
             yield env.timeout(TICK)
-            for id, vecino in enumerate(self.vecinos, start=1):
-                self.canal_salida.envia(("GO",partes[id],elemento), [vecino])
+           
+            self.canal_salida.envia(("GO", arr ,elemento), self.vecinos)
 
         while True :
             orden,arr_,elem = yield self.canal_entrada.get()

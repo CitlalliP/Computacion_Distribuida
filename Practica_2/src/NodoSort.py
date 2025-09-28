@@ -3,7 +3,7 @@ from Nodo import *
 from Canales.CanalBroadcast import *
 from Auxiliares import *
 
-
+TICK = 1
 
 class NodoSort(Nodo):
     def __init__(self, id_nodo,vecinos,cantidad_nodos,canal_entrada, canal_salida,mensaje=None):
@@ -18,53 +18,51 @@ class NodoSort(Nodo):
     def ordernar(self,env,arr):
         '''Implementar'''
         if self.id_nodo == 0:
-            segmentos = cuadricula(arr, self.cantidad_nodos)
-            # enviar segmentos a cada vecino (si hay más vecinos que segmentos enviar [])
-            for i, vecino in enumerate(self.vecinos):
-                seg = segmentos[i] if i < len(segmentos) else []
-                self.canal_salida.envia(("GO", self.id_nodo, seg), [vecino])
+                    self.arr = arr
+                    n = len(arr)
+                    cantidad_nodos = self.cantidad_nodos
+                    segmentos = [arr[i*n//cantidad_nodos:(i+1)*n//cantidad_nodos] for i in range(cantidad_nodos)]
 
-            partes_ordenadas = []
-            esperados = len(self.vecinos)
-            recibidos = 0
-            while recibidos < esperados:
-                msg = yield self.canal_entrada.get()
-                if msg[0] == "BACK":
-                    partes_ordenadas.append(list(msg[2]))
-                    recibidos += 1
-                else:
-                    continue
+                    yield env.timeout(TICK)
 
-            # merge k-way y guardar resultado
-            self.arr = k_merge(partes_ordenadas)
-            return self.arr
+                    for i, vecino in enumerate(self.vecinos, start=1):
+                        if i < len(segmentos):
+                            self.canal_salida.envia(("GO", segmentos[i]), [vecino])
+                        else:
+                            self.canal_salida.envia(("GO", []), [vecino])
 
-        # Trabajador
+                    sorted_segments = [sorted(segmentos[0])]
+
+                    for _ in range(cantidad_nodos - 1):
+                        orden, datos = yield self.canal_entrada.get()
+                        sorted_segments.append(datos)
+
+                    resultado = sorted_segments[0]
+                    for seg in sorted_segments[1:]:
+                        resultado = self.merge_dos_listas(resultado, seg)
+
+                    self.arr = resultado 
+                    print("Arreglo ordenado final:", resultado)
+
         else:
-            while True:
-                msg = yield self.canal_entrada.get()
-                if msg[0] == "GO":
-                    emisor = msg[1]
-                    segmento = list(msg[2]) if len(msg) > 2 else []
-                    # ordenar localmente
-                    segmento.sort()
-                    # pequeño retardo de procesamiento
-                    yield env.timeout(1)
-                    # enviar resultado al coordinador
-                    self.canal_salida.envia(("BACK", self.id_nodo, segmento), [emisor])
-                    self.arr = segmento
-                    return segmento
-                else:
-                    continue
+                    while True:
+                        orden, datos = yield self.canal_entrada.get()
+                        if orden == "GO":
+                            datos_ordenados = sorted(datos)
+                            self.canal_salida.envia(("RESULT", datos_ordenados), [0])
 
-
-    
-
-
-        
-
-
-
-
-
-
+    def merge_dos_listas(self, lista1, lista2):
+                    '''Combina dos listas ordenadas en una sola lista ordenada'''
+                    resultado = []
+                    i = j = 0
+                    while i < len(lista1) and j < len(lista2):
+                        if lista1[i] <= lista2[j]:
+                            resultado.append(lista1[i])
+                            i += 1
+                        else:
+                            resultado.append(lista2[j])
+                            j += 1
+                    resultado.extend(lista1[i:])
+                    resultado.extend(lista2[j:])
+                    return resultado
+                
